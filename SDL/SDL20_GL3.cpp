@@ -327,6 +327,8 @@ void SDL_GL3::Render()
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
+    Frame::DrawOSD();
+
     glEnable(GL_FRAMEBUFFER_SRGB);
 
     // Bind textures, unbind scaled texture and set as render target.

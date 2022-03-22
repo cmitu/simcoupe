@@ -37,12 +37,6 @@
 #include "Tape.h"
 #include "UI.h"
 
-constexpr uint8_t FLOPPY_LED_COLOUR = GREEN_5;
-constexpr uint8_t ATOM_LED_COLOUR = RED_6;
-constexpr uint8_t ATOMLITE_LED_COLOUR = 89;
-constexpr uint8_t LED_OFF_COLOUR = GREY_2;
-
-constexpr auto STATUS_ACTIVE_TIME = std::chrono::milliseconds(2500);
 constexpr auto FPS_IN_TURBO_MODE = 5;
 
 namespace Frame
@@ -54,8 +48,6 @@ const std::vector<REGION> view_areas = {
     { GFX_SCREEN_CELLS + 4, GFX_SCREEN_LINES + 76 }, // TV visible (action safe, 93%)
     { GFX_SCREEN_CELLS + 8, GFX_SCREEN_LINES + 96 }, // full active
 };
-
-static void DrawOSD(FrameBuffer& fb);
 
 std::unique_ptr<FrameBuffer> pFrameBuffer;
 std::unique_ptr<FrameBuffer> pGuiScreen;
@@ -280,11 +272,9 @@ void End()
             save_ssx = false;
         }
 
-        GIF::AddFrame(*pFrameBuffer);
-        AVI::AddFrame(*pFrameBuffer);
-
-        DrawOSD(*pFrameBuffer);
-    }
+            GIF::AddFrame(*pFrameBuffer);
+            AVI::AddFrame(*pFrameBuffer);
+        }
 
     if (draw_frame)
         Redraw();
@@ -295,13 +285,6 @@ void End()
 void Flyback()
 {
     last_line = last_cell = 0;
-
-    if (!status_text.empty())
-    {
-        auto now = std::chrono::steady_clock::now();
-        if ((now - status_time) > STATUS_ACTIVE_TIME)
-            status_text.clear();
-    }
 }
 
 bool TurboMode()
@@ -380,47 +363,130 @@ void Redraw()
         Video::Update(*pFrameBuffer);
 }
 
-void DrawOSD(FrameBuffer& fb)
+static void DrawDriveLEDs()
 {
-    auto width = fb.Width();
-    auto height = fb.Height();
+    constexpr auto FLOPPY_LED_COLOUR = IM_COL32(0, 219, 0, 255);
+    constexpr auto ATOM_LED_COLOUR = IM_COL32(255, 36, 36, 255);
+    constexpr auto ATOMLITE_LED_COLOUR = IM_COL32(36, 182, 255, 255);
+    constexpr auto LED_OFF_COLOUR = IM_COL32(64, 64, 64, 64);
 
+    constexpr auto padding = 8.0f;
+    constexpr auto led_size = ImVec2(24.0f, 6.0f);
+    constexpr auto total_size = ImVec2(padding + led_size.x + padding + led_size.x + padding, padding + led_size.y + padding);
+
+    auto vp = ImGui::GetMainViewport();
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+
+    auto pivot = ImVec2(0.0f, 0.0f);
+    auto pos = ImVec2(vp->WorkPos);
+
+    if (GetOption(drivelights) == 2)
+    {
+        pos.y += vp->WorkSize.y;
+        pivot.y = 1.0f;
+    }
+
+    ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
+    ImGui::SetNextWindowSize(total_size);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+    if (ImGui::Begin("drive_leds", nullptr, window_flags | ImGuiWindowFlags_NoBackground))
+    {
+        ImGui::InvisibleButton("leds", total_size);
+
+        bool atom_active = pAtom->IsActive() || pAtomLite->IsActive();
+        auto atom_colour = pAtom->IsActive() ? ATOM_LED_COLOUR : ATOMLITE_LED_COLOUR;
+        auto colour1 = pFloppy1->IsLightOn() ? FLOPPY_LED_COLOUR : LED_OFF_COLOUR;
+        auto colour2 = pFloppy2->IsLightOn() ? FLOPPY_LED_COLOUR : (atom_active ? atom_colour : LED_OFF_COLOUR);
+
+        auto pos1 = ImVec2(pos.x + padding, pos.y + padding);
+        auto end1 = ImVec2(pos1.x + led_size.x, pos1.y + led_size.y);
+        auto pos2 = ImVec2(end1.x + padding, pos1.y);
+        auto end2 = ImVec2(pos2.x + led_size.x, end1.y);
+        ImGui::GetWindowDrawList()->AddRectFilled(pos1, end1, colour1);
+        ImGui::GetWindowDrawList()->AddRectFilled(pos2, end2, colour2);
+    }
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+    ImGui::End();
+}
+
+static void DrawProfileText()
+{
+    auto vp = ImGui::GetMainViewport();
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+
+    auto profile_pos = ImVec2(vp->WorkPos.x + vp->WorkSize.x, vp->WorkPos.y);
+    ImGui::SetNextWindowPos(profile_pos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.3f);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.0f, 2.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(1.0f, 1.0f));
+
+    if (ImGui::Begin("profile", nullptr, window_flags))
+        ImGui::TextUnformatted(profile_text.c_str());
+    ImGui::End();
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+}
+
+static void DrawStatusText()
+{
+    constexpr auto STATUS_ACTIVE_TIME = 2500;
+    constexpr auto STATUS_FADE_TIME = 300;
+
+    auto vp = ImGui::GetMainViewport();
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+
+    auto status_pos = ImVec2(vp->WorkPos.x + vp->WorkSize.x, vp->WorkPos.y + vp->WorkSize.y);
+    ImGui::SetNextWindowPos(status_pos, ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+
+    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - status_time).count();
+    auto alpha = (elapsed_ms < STATUS_ACTIVE_TIME) ? 1.0f :
+        1.0f - (elapsed_ms - STATUS_ACTIVE_TIME) / static_cast<float>(STATUS_FADE_TIME);
+
+    ImGui::SetNextWindowBgAlpha(alpha / 3.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+
+    if (ImGui::Begin("status", nullptr, window_flags))
+    {
+        ImGui::Text("%s", status_text.c_str());
+    }
+    ImGui::End();
+
+    ImGui::PopFont();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+
+    if (elapsed_ms >= (STATUS_ACTIVE_TIME + STATUS_FADE_TIME))
+        status_text.clear();
+}
+
+void DrawOSD()
+{
     if (GetOption(drivelights))
-    {
-        int x = 2;
-        int y = ((GetOption(drivelights) - 1) & 1) ? height - 4 : 2;
+        DrawDriveLEDs();
 
-        if (GetOption(drive1))
-        {
-            uint8_t bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_COLOUR : LED_OFF_COLOUR;
-            fb.FillRect(x, y, 14, 2, bColour);
-        }
-
-        if (GetOption(drive2))
-        {
-            bool atom_active = pAtom->IsActive() || pAtomLite->IsActive();
-            auto atom_colour = pAtom->IsActive() ? ATOM_LED_COLOUR : ATOMLITE_LED_COLOUR;
-            auto colour = pFloppy2->IsLightOn() ? FLOPPY_LED_COLOUR : (atom_active ? atom_colour : LED_OFF_COLOUR);
-            fb.FillRect(x + 18, y, 14, 2, colour);
-        }
-    }
-
-    auto font = sPropFont;
-    fb.SetFont(font);
-
-    if (GetOption(profile) && !GUI::IsActive())
-    {
-        int x = width - fb.StringWidth(profile_text);
-        fb.DrawString(x, 2, BLACK, profile_text);
-        fb.DrawString(x - 2, 1, WHITE, profile_text);
-    }
+    if (GetOption(profile) && !profile_text.empty())
+        DrawProfileText();
 
     if (GetOption(status) && !status_text.empty())
-    {
-        int x = width - fb.StringWidth(status_text);
-        fb.DrawString(x, height - font->height - 1, BLACK, status_text);
-        fb.DrawString(x - 2, height - font->height - 2, WHITE, status_text);
-    }
+        DrawStatusText();
+
+#if 0
+    static bool show_demo_window = true;
+    if (show_demo_window)
+        ImGui::ShowDemoWindow(&show_demo_window);
+#endif
 }
 
 void SavePNG()

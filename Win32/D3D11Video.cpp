@@ -518,6 +518,8 @@ HRESULT Direct3D11Video::Render()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    Frame::DrawOSD();
+
     auto viewport = CD3D11_VIEWPORT(0.0f, 0.0f, 0.0f, 0.0f);
     viewport.Width = static_cast<float>(m_rIntermediate.right);
     viewport.Height = static_cast<float>(m_rIntermediate.bottom);

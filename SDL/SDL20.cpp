@@ -230,6 +230,8 @@ void SDLTexture::Render()
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
+    Frame::DrawOSD();
+
     SDL_Rect rScaledTexture{};
     SDL_QueryTexture(m_scaled_texture, nullptr, nullptr, &rScaledTexture.w, &rScaledTexture.h);
 
