@@ -50,6 +50,8 @@ class SDL_GL3 final : public IVideoBase
 {
 public:
     SDL_GL3() = default;
+    SDL_GL3(const SDL_GL3&) = delete;
+    SDL_GL3& operator=(const SDL_GL3&) = delete;
     ~SDL_GL3();
 
 public:

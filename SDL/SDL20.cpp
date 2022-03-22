@@ -26,6 +26,9 @@
 #include "Options.h"
 #include "UI.h"
 
+#include "backends/imgui_impl_sdl.h"
+#include "backends/imgui_impl_sdlrenderer.h"
+
 #ifdef HAVE_LIBSDL2
 
 static uint32_t aulPalette[NUM_PALETTE_COLOURS];
@@ -38,6 +41,9 @@ SDLTexture::SDLTexture()
 
 SDLTexture::~SDLTexture()
 {
+    ImGui_ImplSDLRenderer_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+
     SaveWindowPosition();
 }
 
@@ -75,6 +81,9 @@ bool SDLTexture::Init()
     OptionsChanged();
     RestoreWindowPosition();
     SDL_ShowWindow(m_window);
+
+    ImGui_ImplSDL2_InitForSDLRenderer(m_window, m_renderer);
+    ImGui_ImplSDLRenderer_Init(m_renderer);
 
     return true;
 }
@@ -217,6 +226,10 @@ bool SDLTexture::DrawChanges(const FrameBuffer& fb)
 
 void SDLTexture::Render()
 {
+    ImGui_ImplSDLRenderer_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
     SDL_Rect rScaledTexture{};
     SDL_QueryTexture(m_scaled_texture, nullptr, nullptr, &rScaledTexture.w, &rScaledTexture.h);
 
@@ -245,6 +258,16 @@ void SDLTexture::Render()
     SDL_SetRenderTarget(m_renderer, nullptr);
     SDL_RenderClear(m_renderer);
     SDL_RenderCopy(m_renderer, m_composed_texture, nullptr, &m_rDisplay);
+
+    ImGui::Render();
+    ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
+
+    auto& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
 
     SDL_RenderPresent(m_renderer);
     std::swap(m_composed_texture, m_prev_composed_texture);

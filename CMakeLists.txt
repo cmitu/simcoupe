@@ -73,7 +73,7 @@ set(BASE_H_FILES
 set(BASE_RUNTIME_FILES
     Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom Resource/sp0256-al2.bin
     Resource/samports.map Resource/samrom.map Resource/samdos2.map Resource/samdos2.sbt
-    Resource/SimCoupe.bmp)
+    Resource/SimCoupe.bmp Resource/Roboto-Medium.ttf)
 
 set(SOURCE_FILES ${BASE_CPP_FILES} ${BASE_C_FILES})
 set(HEADER_FILES ${BASE_H_FILES})
@@ -242,6 +242,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${spectrum_SOURCE_DIR})
 
 add_subdirectory(Extern/whereami EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PRIVATE whereami)
+
+add_subdirectory(Extern/imgui EXCLUDE_FROM_ALL)
+target_link_libraries(${PROJECT_NAME} PRIVATE imgui)
 
 # Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
 if (WIN32)

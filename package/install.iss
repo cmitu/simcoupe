@@ -98,6 +98,7 @@ Source: "..\Resource\*.rom"; DestDir: "{app}"; Flags: ignoreversion; Components:
 Source: "..\Resource\*.bin"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 Source: "..\Resource\*.map"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 Source: "..\Resource\*.sbt"; DestDir: "{app}"; Flags: ignoreversion; Components: main
+Source: "..\Resource\*.ttf"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 Source: "..\ReadMe.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Manual.md"; DestDir: "{app}"; Flags: ignoreversion
 

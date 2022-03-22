@@ -839,7 +839,8 @@ void UpdateInput()
     if (GetOption(turbodisk) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
         Input::Purge();
 
-    key_matrix = Keyboard::key_matrix;
+    if (!ImGui::GetIO().WantCaptureKeyboard)
+        key_matrix = Keyboard::key_matrix;
 }
 
 void UpdateDrives()
@@ -894,15 +895,6 @@ std::vector<COLOUR> Palette()
         auto r = (((i & 0x02) << 0) | ((i & 0x20) >> 3) | ((i & 0x08) >> 3)) / 7.0f;
         auto g = (((i & 0x04) >> 1) | ((i & 0x40) >> 4) | ((i & 0x08) >> 3)) / 7.0f;
         auto b = (((i & 0x01) << 1) | ((i & 0x10) >> 2) | ((i & 0x08) >> 3)) / 7.0f;
-
-#if 0 // TODO
-        if (srgb)
-        {
-            r = RGB2sRGB(r);
-            g = RGB2sRGB(g);
-            b = RGB2sRGB(b);
-        }
-#endif
 
         auto max_intensity = static_cast<float>(GetOption(maxintensity));
         palette[i].red = static_cast<uint8_t>(std::lround(r * max_intensity));

@@ -79,6 +79,12 @@ std::string profile_text;
 constexpr auto max_boot_frames = 200;
 int boot_frames{};
 
+struct ImGuiDeleter { void operator()(ImGuiContext* context) { ImGui::DestroyContext(context); } };
+using unique_imgui_context = unique_resource<ImGuiContext*, nullptr, ImGuiDeleter>;
+
+std::string imgui_settings_path = OSD::MakeFilePath(PathType::Settings, "imgui.ini");
+unique_imgui_context imgui;
+
 bool Init()
 {
     Exit();
@@ -99,6 +105,7 @@ bool Init()
     pGuiScreen = std::make_unique<FrameBuffer>(width, height * 2);
 
     Flyback();
+    InitImGui();
     boot_frames = max_boot_frames;
 
     return true;
@@ -856,6 +863,34 @@ void BorderArtefact(uint8_t* pLine, int /*line*/, int cell, uint8_t new_border)
         pFrame[4] = pFrame[5] = pFrame[6] = pFrame[7] =
         pFrame[8] = pFrame[9] = pFrame[10] = pFrame[11] =
         pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = IO::State().clut[BORDER_COLOUR(new_border)];
+}
+
+void InitImGui()
+{
+    if (imgui)
+        return;
+
+    IMGUI_CHECKVERSION();
+    imgui = ImGui::CreateContext();
+
+    auto& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.IniFilename = imgui_settings_path.c_str();
+
+    ImGui::StyleColorsDark();
+
+    const auto font_path = OSD::MakeFilePath(PathType::Resource, "Roboto-Medium.ttf");
+    io.Fonts->AddFontDefault();
+    io.Fonts->AddFontFromFileTTF(font_path.c_str(), 24.0f);
+
+    auto& style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
 }
 
 } // namespace Frame

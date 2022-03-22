@@ -40,6 +40,7 @@ SDL_Joystick* pJoystick1, * pJoystick2;
 bool fMouseActive, fKeyboardActive;
 int nLastKey, nLastMods;
 const Uint8* pKeyStates;
+bool hide_cursor = false;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -85,6 +86,11 @@ void Input::Exit()
     if (pJoystick2) { SDL_JoystickClose(pJoystick2); pJoystick2 = nullptr; nJoystick2 = -1; }
 }
 
+bool Input::IsCursorHidden()
+{
+    return hide_cursor && !GUI::IsActive();
+}
+
 // Return whether the emulation is using the mouse
 bool Input::IsMouseAcquired()
 {
@@ -98,14 +104,12 @@ void Input::AcquireMouse(bool active)
 
     if (GetOption(mouse))
     {
-        SDL_ShowCursor(active ? SDL_DISABLE : SDL_ENABLE);
         Video::MouseRelative();
         SDL_CaptureMouse(active ? SDL_TRUE : SDL_FALSE);
     }
 
     fMouseActive = active;
 }
-
 
 // Purge pending keyboard and/or mouse events
 void Input::Purge()
@@ -197,7 +201,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
         bool fPress = pEvent->type == SDL_KEYDOWN;
         if (fPress)
-            SDL_ShowCursor(SDL_DISABLE);
+            hide_cursor = true;
 
         // Ignore key repeats unless the GUI is active
         if (pEvent->repeat && !GUI::IsActive())
@@ -304,8 +308,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         int x = pEvent_->motion.x;
         int y = pEvent_->motion.y;
 
-        bool hide_cursor = fMouseActive && !GUI::IsActive();
-        SDL_ShowCursor(hide_cursor ? SDL_DISABLE : SDL_ENABLE);
+        hide_cursor = false;
 
         // Mouse in use by the GUI?
         if (GUI::IsActive())

@@ -35,15 +35,15 @@
 #include "SDL20.h"
 #include "SDL20_GL3.h"
 
+#include "backends/imgui_impl_sdl.h"
+
 bool UI::Init(bool fFirstInit_/*=false*/)
 {
     bool fRet = true;
 
     Exit(true);
 
-    // Set the window caption and disable the cursor until needed
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
-    SDL_ShowCursor(SDL_DISABLE);
 
     // To help on platforms without a native GUI, we'll display a one-time welcome message
 #if !defined(__APPLE__) && !defined(_WINDOWS)
@@ -104,16 +104,26 @@ bool UI::CheckEvents()
 
     while (1)
     {
+        if (Input::IsMouseAcquired() || Input::IsCursorHidden())
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+
         while (SDL_PollEvent(&event))
         {
-            // Input has first go at processing any messages
-            if (Input::FilterEvent(&event))
-                continue;
+            ImGui_ImplSDL2_ProcessEvent(&event);
+
+            if (!ImGui::GetIO().WantCaptureKeyboard && !ImGui::GetIO().WantCaptureMouse)
+            {
+                if (Input::FilterEvent(&event))
+                    continue;
+            }
 
             switch (event.type)
             {
             case SDL_QUIT:
                 return false;
+
+            case SDL_WINDOWEVENT:
+                return event.window.event != SDL_WINDOWEVENT_CLOSE;
 
             case SDL_DROPFILE:
                 if (pFloppy1->Insert(event.drop.file))

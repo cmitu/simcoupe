@@ -27,6 +27,9 @@
 #include "Options.h"
 #include "UI.h"
 
+#include "backends/imgui_impl_sdl.h"
+#include "backends/imgui_impl_opengl3.h"
+
 #ifdef HAVE_OPENGL
 
 static auto aspect_vs_code = R"(
@@ -94,6 +97,12 @@ static auto blend_fs_code = R"(
 
 SDL_GL3::~SDL_GL3()
 {
+    if (ImGui::GetIO().BackendRendererUserData)
+        ImGui_ImplOpenGL3_Shutdown();
+
+    if (ImGui::GetIO().BackendPlatformUserData)
+        ImGui_ImplSDL2_Shutdown();
+
     SaveWindowPosition();
     SDL_GL_ResetAttributes();
 }
@@ -135,6 +144,7 @@ bool SDL_GL3::Init()
     m_context = SDL_GL_CreateContext(m_window);
     if (!m_context)
         return false;
+    SDL_GL_MakeCurrent(m_window, m_context);
 
     if (gl3wInit() != GL3W_OK)
         return false;
@@ -148,8 +158,6 @@ bool SDL_GL3::Init()
 
     // Disable vsync for as long as we're in the same thread as emulation and sound.
     SDL_GL_SetSwapInterval(0);
-
-    glEnable(GL_FRAMEBUFFER_SRGB);
 
     glGenTextures(1, &m_texture_palette);
     glGenTextures(1, &m_texture_screen);
@@ -176,6 +184,17 @@ bool SDL_GL3::Init()
     OptionsChanged();
     RestoreWindowPosition();
     SDL_ShowWindow(m_window);
+
+    if (!ImGui_ImplSDL2_InitForOpenGL(m_window, m_context))
+    {
+        TRACE("ImGui_ImplSDL2_InitForOpenGL failed!");
+        return false;
+    }
+    else if (!ImGui_ImplOpenGL3_Init("#version 330 core"))
+    {
+        TRACE("ImGui_ImplOpenGL3_Init failed!");
+        return false;
+    }
 
     return true;
 }
@@ -304,7 +323,13 @@ void SDL_GL3::Render()
     static GLenum buffers[]{ GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
     GLuint textures[]{ m_texture_output, m_texture_prev_output };
 
-    // Bind textyres, unbind scaled texture and set as render target.
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
+    // Bind textures, unbind scaled texture and set as render target.
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_texture_palette);
     glActiveTexture(GL_TEXTURE1);
@@ -339,12 +364,24 @@ void SDL_GL3::Render()
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+    glDisable(GL_FRAMEBUFFER_SRGB);
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    auto& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        SDL_GL_MakeCurrent(m_window, m_context);
+    }
+
     SDL_GL_SwapWindow(m_window);
 
 #ifdef _DEBUG
     for (GLenum error; (error = glGetError()) != GL_NO_ERROR; )
     {
-        TRACE("GL error: {}", error);
+        TRACE("GL error: {}\n", error);
     }
 #endif
 }

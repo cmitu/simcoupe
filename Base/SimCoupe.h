@@ -90,6 +90,8 @@ namespace fs = ghc::filesystem;
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
+#include "imgui.h"
+
 #include "z80.h"
 
 #include "Util.h"       /* Utility functions */

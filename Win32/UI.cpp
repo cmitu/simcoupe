@@ -56,6 +56,9 @@
 #include "Video.h"
 #include "WAV.h"
 
+#include "backends/imgui_impl_win32.h"
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 #include "resource.h"   // For menu and dialogue box symbols
 
 static const int MOUSE_HIDE_TIME = 2000;   // 2 seconds
@@ -101,6 +104,8 @@ static WINDOWPLACEMENT g_wp{};
 static int nOptionPage = 0;                // Last active option property page
 static const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
 static bool fCentredOptions;
+
+static bool hide_cursor = false;
 
 static Config current_config;
 #define Changed(o)  (current_config.o != GetOption(o))
@@ -166,13 +171,17 @@ bool UI::Init()
     if (GetOption(drive1) == drvFloppy)
         AddRecentFile(pFloppy1->DiskPath());
 
-    return InitWindow();
+    if (!InitWindow())
+        return false;
+
+    return ImGui_ImplWin32_Init(g_hwnd);
 }
 
 void UI::Exit()
 {
     if (g_hwnd)
     {
+        ImGui_ImplWin32_Shutdown();
         SaveWindowPosition(g_hwnd);
         DestroyWindow(g_hwnd), g_hwnd = nullptr;
     }
@@ -196,6 +205,9 @@ bool UI::CheckEvents()
 {
     while (1)
     {
+        if (Input::IsMouseAcquired() || hide_cursor)
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+
         // Loop to process any pending Windows messages
         MSG msg;
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -1113,10 +1125,13 @@ LRESULT CALLBACK WinKeyHookProc(int nCode_, WPARAM wParam_, LPARAM lParam_)
 // Handle messages for the main window
 LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    static bool fInMenu = false, fHideCursor = false;
+    static bool fInMenu = false;
     static UINT_PTR ulMouseTimer = 0;
 
     static OwnerDrawnMenu odmenu(nullptr, IDT_MENU, aMenuIcons);
+
+    if (ImGui_ImplWin32_WndProcHandler(hwnd_, uMsg_, wParam_, lParam_))
+        return 0;
 
     LRESULT lResult;
     if (odmenu.WindowProc(hwnd_, uMsg_, wParam_, lParam_, &lResult))
@@ -1190,7 +1205,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         // Kill the timer, and flag the mouse as hidden
         KillTimer(hwnd_, MOUSE_TIMER_ID);
         ulMouseTimer = 0;
-        fHideCursor = true;
+        hide_cursor = !ImGui::GetIO().WantCaptureMouse;
 
         // Generate a WM_SETCURSOR to update the cursor state
         POINT pt;
@@ -1198,20 +1213,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         SetCursorPos(pt.x, pt.y);
         return 0;
 
-    case WM_SETCURSOR:
-        // Hide the cursor unless it's being used for the Win32 GUI or the emulation using using it in windowed mode
-        if (fHideCursor || Input::IsMouseAcquired())
-        {
-            // Only hide the cursor over the client area
-            if (LOWORD(lParam_) == HTCLIENT)
-            {
-                SetCursor(nullptr);
-                return TRUE;
-            }
-        }
-        break;
-
-        // Mouse has been moved
+    // Mouse has been moved
     case WM_MOUSEMOVE:
     {
         static POINT ptLast;
@@ -1220,7 +1222,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         if ((pt.x != ptLast.x || pt.y != ptLast.y) && !Input::IsMouseAcquired())
         {
-            fHideCursor = false;
+            hide_cursor = false;
             ulMouseTimer = SetTimer(g_hwnd, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, nullptr);
             ptLast = pt;
         }
@@ -1238,7 +1240,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
     case WM_EXITMENULOOP:
         // No longer in menu, so start timer to hide the mouse if not used again
-        fInMenu = fHideCursor = false;
+        fInMenu = hide_cursor = false;
         ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, nullptr);
 
         // Purge any menu navigation key presses

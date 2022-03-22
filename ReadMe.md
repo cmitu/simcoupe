@@ -33,13 +33,14 @@ users can use the _Open Folder_ option in Visual Studio to trigger the built-in
 CMake generator. A number of optional libraries will be used if detected at
 configuration time.
 
-Non-Windows platforms require the SDL 2.x library. This is usually available as
-a `libsdl2-dev` package in Linux. macOS users can download the SDL2 framework
-and install to `/Library/Frameworks`, where it'll be picked up by CMake.
+Non-Windows platforms require the SDL2 library (v2.0.17 or later). Linux users
+can install the `libsdl2-dev` package, if it's new enough.  macOS users should
+[download](https://cmake.org/download/\latest) the SDL2 framework and install
+to `/Library/Frameworks`.
 
 Windows developers may wish to install
-[vcpkg](https://github.com/Microsoft/vcpkg) and add the zlib, bzip2 and libpng
-packages, for use by SimCoupe.
+[vcpkg](https://github.com/Microsoft/vcpkg) and add the zlib and bzip2 packages
+for use by SimCoupe. Without them some emulator features will be unavailable.
 
 Typical command-line build process:
 ```

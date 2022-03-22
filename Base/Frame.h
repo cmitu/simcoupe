@@ -103,6 +103,7 @@ void Mode2Line(uint8_t* pLine, int line, int from, int to);
 void Mode3Line(uint8_t* pLine, int line, int from, int to);
 void Mode4Line(uint8_t* pLine, int line, int from, int to);
 
+void InitImGui();
 }
 
 

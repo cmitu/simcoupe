@@ -29,6 +29,7 @@ public:
     static void Update();
     static bool FilterEvent(SDL_Event* pEvent_);
 
+    static bool IsCursorHidden();
     static bool IsMouseAcquired();
     static void AcquireMouse(bool fAcquire_ = true);
     static void Purge();

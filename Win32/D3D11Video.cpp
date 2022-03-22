@@ -26,6 +26,9 @@
 #include "D3D11_Palette_PS.h"
 #include "D3D11_Blend_PS.h"
 
+#include "backends/imgui_impl_win32.h"
+#include "backends/imgui_impl_dx11.h"
+
 #include "Frame.h"
 #include "GUI.h"
 #include "Options.h"
@@ -267,9 +270,17 @@ HRESULT Direct3D11Video::InitD3D11()
         return Fail(hr, "CreateRS");
     m_d3dContext->RSSetState(m_defaultRS.Get());
 
+    if (!ImGui_ImplDX11_Init(m_device.Get(), m_d3dContext.Get()))
+        return E_FAIL;
+
     OptionsChanged();
 
     return S_OK;
+}
+
+Direct3D11Video::~Direct3D11Video()
+{
+    ImGui_ImplDX11_Shutdown();
 }
 
 HRESULT Direct3D11Video::ResizeSource(int width, int height)
@@ -503,6 +514,10 @@ HRESULT Direct3D11Video::Render()
     if (!m_d3dContext)
         return S_FALSE;
 
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
     auto viewport = CD3D11_VIEWPORT(0.0f, 0.0f, 0.0f, 0.0f);
     viewport.Width = static_cast<float>(m_rIntermediate.right);
     viewport.Height = static_cast<float>(m_rIntermediate.bottom);
@@ -538,6 +553,16 @@ HRESULT Direct3D11Video::Render()
     m_d3dContext->VSSetShader(m_aspectVS.Get(), nullptr, 0);
     m_d3dContext->PSSetShader(m_samplePS.Get(), nullptr, 0);
     m_d3dContext->Draw(4, 0);
+
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+    auto& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
 
     auto hr = m_swapChain->Present(0, m_allow_tearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
