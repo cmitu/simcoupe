@@ -13,8 +13,11 @@
    - SPB-640 perpherial/RAM bus
 */
 
-#include "SimCoupe.h"
+#include <cassert>
+#include <cstring>
+
 #include "sp0256.h"
+
 
 #define LOG(...)
 #define LOGFIFO(...) //LOGMASKED(LOG_FIFO, __VA_ARGS__)

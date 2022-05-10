@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-// copyright-holders:Joseph Zbiciak,Tim Lindner
+// copyright-holders:Joseph Zbiciak,Tim Lindner,Simon Owen
 /**********************************************************************
 
     SP0256 Narrator Speech Processor emulation
@@ -31,6 +31,10 @@
 */
 
 #pragma once
+
+#include <cstdint>
+#include <array>
+#include <vector>
 
 using stream_sample_t = int16_t;
 

@@ -1,6 +1,6 @@
 add_library(imgui STATIC)
 
-target_compile_features(imgui PUBLIC cxx_std_17)
+target_compile_features(imgui PRIVATE cxx_std_17)
 
 target_sources(imgui
   PRIVATE
@@ -13,19 +13,28 @@ target_sources(imgui
     imgui.h)
 
 if (BUILD_WIN32)
-  target_sources(imgui PRIVATE
-    backends/ImGui_VS.hlsl
-    backends/ImGui_PS.hlsl
-    backends/imgui_impl_dx11.cpp
-    backends/imgui_impl_win32.cpp)
-  target_include_directories(imgui PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-  SET_SHADER_COMPILER(backends/ImGui_VS.hlsl vs_4_0)
-  SET_SHADER_COMPILER(backends/ImGui_PS.hlsl ps_4_0)
-elseif(BUILD_SDL)
-  target_sources(imgui PRIVATE
-    backends/imgui_impl_opengl3.cpp
-    backends/imgui_impl_sdl.cpp
-    backends/imgui_impl_sdlrenderer.cpp)
+  target_sources(imgui
+    PRIVATE
+      backends/ImGui_VS.hlsl
+      backends/ImGui_PS.hlsl
+      backends/imgui_impl_dx11.cpp
+      backends/imgui_impl_win32.cpp)
+
+  target_include_directories(imgui
+    PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR})
+
+  set_shader_compiler(backends/ImGui_VS.hlsl vs_4_0)
+  set_shader_compiler(backends/ImGui_PS.hlsl ps_4_0)
+endif()
+
+if(BUILD_SDL)
+  target_sources(imgui
+    PRIVATE
+      backends/imgui_impl_opengl3.cpp
+      backends/imgui_impl_sdl.cpp
+      backends/imgui_impl_sdlrenderer.cpp)
+
   if (SIMCOUPE_PORTABLE)
     target_link_libraries(imgui PRIVATE SDL2-static)
   else()
@@ -34,4 +43,6 @@ elseif(BUILD_SDL)
   endif()
 endif()
 
-target_include_directories(imgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(imgui
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR})

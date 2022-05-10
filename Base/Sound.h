@@ -21,8 +21,7 @@
 #pragma once
 
 #include "SAMIO.h"
-#include "BlipBuffer.h"
-
+#include "Blip_Buffer.h"
 #include "SAASound.h"
 
 constexpr auto SAMPLE_FREQ = 44100;

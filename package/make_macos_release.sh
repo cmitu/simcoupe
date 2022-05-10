@@ -22,13 +22,14 @@ install_name_tool -add_rpath @executable_path/../Frameworks \
 mkdir SimCoupe.app/Contents/Frameworks
 cp -r /Library/Frameworks/SDL2.framework SimCoupe.app/Contents/Frameworks
 cp -r _deps/saasound-build/SAASound.framework SimCoupe.app/Contents/Frameworks
+find SimCoupe.app -type f -maxdepth 4
 
 rm -rf dist
 mkdir -p dist/.background
 cp -r SimCoupe.app dist/
 cp ../package/dmg_bkg.png dist/.background/
 
-VERSION=$(plutil -extract CFBundleShortVersionString xml1 -o - ./Info-SimCoupe.plist | \
+VERSION=$(plutil -extract CFBundleShortVersionString xml1 -o - ./SDL/OSX/Info-SimCoupe.plist | \
   sed -n "s/.*<string>\(.*\)<\/string>.*/\1/p")
 VOLNAME="SimCoupe ${VERSION}"
 VOLPATH="/Volumes/${VOLNAME}"

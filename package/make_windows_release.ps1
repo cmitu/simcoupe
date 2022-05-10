@@ -56,7 +56,8 @@ function Build-Zip {
         $zipfile = Join-Path .. "SimCoupe-${version}-win_${target_arch}.zip"
 
         Remove-Item $zipfile -ErrorAction SilentlyContinue
-        &7z a $zipfile -bsp0 -bso0 SimCoupe.exe *.dll ..\ReadMe.md ..\Manual.md ..\License.* ..\Resource\* '-x!..\Resource\SimCoupe.bmp'
+        &7z a $zipfile -bsp0 -bso0 SimCoupe.exe *.dll ..\ReadMe.md ..\Manual.md ..\License.* `
+            ..\Resource\*.rom ..\Resource\*.map ..\Resource\*.sbt ..\Resource\*.ttf ..\Resource\*.bin
         &7z l $zipfile
     } else {
         Write-Warning '7zip is required for ZIP creation'

@@ -60,7 +60,7 @@ std::string OSD::MakeFilePath(PathType type, const std::string& filename)
 
     std::string exe;
     exe.resize(wai_getExecutablePath(nullptr, 0, nullptr));
-    wai_getExecutablePath(exe.data(), exe.length(), nullptr);
+    wai_getExecutablePath(exe.data(), static_cast<int>(exe.length()), nullptr);
     auto exe_path = fs::path(exe).remove_filename();
 
 #if defined(_WINDOWS)

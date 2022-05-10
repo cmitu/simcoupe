@@ -1,6 +1,6 @@
 if (WIN32)
   # Compile HLSL shaders for Windows.
-  function(SET_SHADER_COMPILER File Profile)
+  function(set_shader_compiler File Profile)
     if (NOT FXC)
       find_program(FXC fxc DOC "DirectX Shader Compiler")
       if (NOT FXC)
