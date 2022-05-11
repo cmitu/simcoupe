@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=SimCoupe
+GenericName=SimCoupe
+Comment=SAM Coupé Emulator
+Exec=simcoupe %F
+Terminal=false
+Type=Application
+Keywords=sam;coupe;emulator;
+Icon=simcoupe
+Categories=Emulator;

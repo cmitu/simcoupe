@@ -101,6 +101,15 @@ target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR})
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  install(
+    FILES package/simcoupe.desktop
+    DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/applications)
+  install(
+    FILES package/simcoupe.png
+    DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/icons/hicolor/128x128/apps)
+endif()
+
 install(
   FILES ${RESOURCE_FILES}
   DESTINATION ${RESOURCE_DIR})
