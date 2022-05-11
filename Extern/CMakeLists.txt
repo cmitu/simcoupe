@@ -1,8 +1,41 @@
 include(FetchContent)
 
-#set(CMAKE_THREAD_PREFER_PTHREAD pthread)
-#find_package(Threads REQUIRED)
-#target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
+if (BUILD_SDL)
+  find_program(SDL2CONFIG sdl2-config DOC "SDL2 configuration utility")
+  if (SDL2CONFIG)
+    execute_process(
+      COMMAND ${SDL2CONFIG} --version
+      OUTPUT_VARIABLE SDL2_VERSION
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "sdl2-config --version: ${SDL2_VERSION}")
+    if (${SDL2_VERSION} VERSION_LESS ${MIN_SDL_VERSION})
+      set(SIMCOUPE_SDL2_STATIC TRUE)
+    endif()
+  endif()
+
+  if (SIMCOUPE_SDL2_STATIC OR SIMCOUPE_PORTABLE)
+    message(STATUS "Fetching SDL2 project")
+    FetchContent_Declare(
+      sdl2
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+      GIT_TAG        release-2.0.20
+      GIT_PROGRESS   TRUE)
+    set(SDL_SHARED OFF)
+    FetchContent_MakeAvailable(sdl2)
+    target_link_libraries(${PROJECT_NAME} PRIVATE SDL2main SDL2-static)
+  else()
+    find_package(SDL2 REQUIRED)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARY})
+  endif()
+  set(HAVE_LIBSDL2 1 PARENT_SCOPE)
+
+  find_package(OpenGL)
+  if (OPENGL_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})
+    set(HAVE_OPENGL 1 PARENT_SCOPE)
+  endif()
+endif()
 
 find_package(ZLIB)
 if (ZLIB_FOUND)
@@ -101,31 +134,6 @@ FetchContent_Populate(z80)
 add_library(z80 INTERFACE)
 target_include_directories(z80 INTERFACE ${z80_SOURCE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE z80)
-
-if (BUILD_SDL)
-  if (SIMCOUPE_PORTABLE)
-    message(STATUS "Fetching SDL2 project")
-    FetchContent_Declare(
-      sdl2
-      GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-      GIT_TAG        release-2.0.20
-      GIT_PROGRESS   TRUE)
-    set(SDL_SHARED OFF)
-    FetchContent_MakeAvailable(sdl2)
-    target_link_libraries(${PROJECT_NAME} PRIVATE SDL2main SDL2-static)
-  else()
-    find_package(SDL2 REQUIRED)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARY})
-  endif()
-  set(HAVE_LIBSDL2 1 PARENT_SCOPE)
-
-  find_package(OpenGL)
-  if (OPENGL_FOUND)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})
-    set(HAVE_OPENGL 1 PARENT_SCOPE)
-  endif()
-endif()
 
 if (EXISTS "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/xaudio2redist/xaudio2.h")
   target_include_directories(

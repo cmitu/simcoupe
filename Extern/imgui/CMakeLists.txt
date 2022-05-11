@@ -35,7 +35,7 @@ if(BUILD_SDL)
       backends/imgui_impl_sdl.cpp
       backends/imgui_impl_sdlrenderer.cpp)
 
-  if (SIMCOUPE_PORTABLE)
+  if (SIMCOUPE_SDL2_STATIC OR SIMCOUPE_PORTABLE)
     target_link_libraries(imgui PRIVATE SDL2-static)
   else()
     find_package(SDL2 REQUIRED)
